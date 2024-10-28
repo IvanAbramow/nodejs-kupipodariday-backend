@@ -6,8 +6,10 @@ import { CreateOfferDto } from './dto/createOffer.dto';
 
 @Injectable()
 export class OffersService {
-  constructor(@InjectRepository(Offer)
-              private offerRepository: Repository<Offer>) {}
+  constructor(
+    @InjectRepository(Offer)
+    private offerRepository: Repository<Offer>,
+  ) {}
 
   async createOffer(createOfferDto: CreateOfferDto): Promise<Offer> {
     return this.offerRepository.save(createOfferDto);

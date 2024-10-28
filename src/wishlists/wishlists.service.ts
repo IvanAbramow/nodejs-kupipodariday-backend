@@ -6,7 +6,10 @@ import { CreateWishlistDto } from './dto/createWishlist.dto';
 
 @Injectable()
 export class WishlistsService {
-  constructor(@InjectRepository(Wishlist) private wishlistRepository: Repository<Wishlist>) {}
+  constructor(
+    @InjectRepository(Wishlist)
+    private wishlistRepository: Repository<Wishlist>,
+  ) {}
 
   async create(createWishlistDto: CreateWishlistDto): Promise<Wishlist> {
     return this.wishlistRepository.save(createWishlistDto);

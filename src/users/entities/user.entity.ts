@@ -1,4 +1,11 @@
-import { Column, DefaultNamingStrategy, Entity, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Column,
+  DefaultNamingStrategy,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 import { IsEmail, IsUrl, Length } from 'class-validator';
 import { Wish } from '../../wishes/entities/wish.entity';
 import { Offer } from '../../offers/entities/offer.entity';
@@ -20,11 +27,11 @@ export class User {
   @Length(2, 30)
   username: string;
 
-  @Column({ default: 'Пока ничего не рассказал о себе'})
+  @Column({ default: 'Пока ничего не рассказал о себе' })
   @Length(2, 200)
   about: string;
 
-  @Column({ default: 'https://i.pravatar.cc/300'})
+  @Column({ default: 'https://i.pravatar.cc/300' })
   @IsUrl()
   avatar: string;
 
