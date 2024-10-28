@@ -6,10 +6,11 @@ import { UsersModule } from './users/users.module';
 import { WishesModule } from './wishes/wishes.module';
 import { WishlistsModule } from './wishlists/wishlists.module';
 import { OffersModule } from './offers/offers.module';
-import { Wishlist } from './wishlists/entity/wishlist.entity';
-import { Wish } from './wishes/entity/wish.entity';
-import { User } from './users/entity/user.entity';
-import { Offer } from './offers/entity/offer.entity';
+import { Wishlist } from './wishlists/entities/wishlist.entity';
+import { Wish } from './wishes/entities/wish.entity';
+import { User } from './users/entities/user.entity';
+import { Offer } from './offers/entities/offer.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { Offer } from './offers/entity/offer.entity';
     WishesModule,
     WishlistsModule,
     OffersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

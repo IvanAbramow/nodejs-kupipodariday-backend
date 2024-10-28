@@ -1,8 +1,8 @@
 import { Column, DefaultNamingStrategy, Entity, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { IsEmail, IsUrl, Length } from 'class-validator';
-import { Wish } from '../../wishes/entity/wish.entity';
-import { Offer } from '../../offers/entity/offer.entity';
-import { Wishlist } from '../../wishlists/entity/wishlist.entity';
+import { Wish } from '../../wishes/entities/wish.entity';
+import { Offer } from '../../offers/entities/offer.entity';
+import { Wishlist } from '../../wishlists/entities/wishlist.entity';
 
 @Entity()
 @Unique(['email', 'username'])

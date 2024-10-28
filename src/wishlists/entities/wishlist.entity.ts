@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Length } from 'class-validator';
-import { Wish } from '../../wishes/entity/wish.entity';
-import { User } from '../../users/entity/user.entity';
+import { Wish } from '../../wishes/entities/wish.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity()
 export class Wishlist {

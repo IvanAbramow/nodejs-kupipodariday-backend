@@ -1,6 +1,6 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from '../../users/entity/user.entity';
-import { Wish } from '../../wishes/entity/wish.entity';
+import { User } from '../../users/entities/user.entity';
+import { Wish } from '../../wishes/entities/wish.entity';
 
 @Entity()
 export class Offer {

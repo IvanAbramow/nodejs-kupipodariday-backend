@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { IsInt, IsUrl, Length } from 'class-validator';
-import { User } from '../../users/entity/user.entity';
-import { Offer } from '../../offers/entity/offer.entity';
+import { User } from '../../users/entities/user.entity';
+import { Offer } from '../../offers/entities/offer.entity';
 
 @Entity()
 export class Wish {
