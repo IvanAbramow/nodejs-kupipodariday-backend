@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wishlist } from './entities/wishlist.entity';
-import { Repository } from 'typeorm';
-import { CreateWishlistDto } from './dto/createWishlist.dto';
+import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+import { WishlistDto } from './dto/wishlist.dto';
 
 @Injectable()
 export class WishlistsService {
@@ -11,11 +11,26 @@ export class WishlistsService {
     private wishlistRepository: Repository<Wishlist>,
   ) {}
 
-  async create(createWishlistDto: CreateWishlistDto): Promise<Wishlist> {
+  async create(createWishlistDto: WishlistDto): Promise<Wishlist> {
     return this.wishlistRepository.save(createWishlistDto);
   }
 
-  async getAllWishlists(): Promise<Wishlist[]> {
+  async getAllLists(): Promise<Wishlist[]> {
     return this.wishlistRepository.find();
+  }
+
+  async getById(id: number): Promise<Wishlist> {
+    return this.wishlistRepository.findOneBy({ id });
+  }
+
+  async deleteById(id: number): Promise<DeleteResult> {
+    return this.wishlistRepository.delete(id);
+  }
+
+  async updateById(
+    id: number,
+    createWishlistDto: WishlistDto,
+  ): Promise<UpdateResult> {
+    return this.wishlistRepository.update(id, createWishlistDto);
   }
 }

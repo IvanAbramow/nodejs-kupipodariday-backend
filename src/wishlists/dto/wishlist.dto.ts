@@ -1,6 +1,6 @@
 import { Optional } from '@nestjs/common';
 
-export class CreateWishlistDto {
+export class WishlistDto {
   @Optional()
   name: string;
 
