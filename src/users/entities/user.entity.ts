@@ -1,15 +1,15 @@
 import {
-  Column,
-  DefaultNamingStrategy,
+  Column, CreateDateColumn,
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
-  Unique,
+  Unique, UpdateDateColumn,
 } from 'typeorm';
 import { IsEmail, IsUrl, Length } from 'class-validator';
 import { Wish } from '../../wishes/entities/wish.entity';
 import { Offer } from '../../offers/entities/offer.entity';
 import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 @Unique(['email', 'username'])
@@ -17,10 +17,10 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @CreateDateColumn()
   createdAt: Date;
 
-  @Column()
+  @UpdateDateColumn()
   updatedAt: Date;
 
   @Column()
@@ -40,6 +40,7 @@ export class User {
   email: string;
 
   @Column()
+  @Exclude()
   password: string;
 
   @OneToMany(() => Wish, (wish) => wish.owner)
