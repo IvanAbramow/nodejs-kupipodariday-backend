@@ -45,7 +45,7 @@ export class User {
   @Exclude()
   password: string;
 
-  @OneToMany(() => Wish, (wish) => wish.owner)
+  @OneToMany(() => Wish, (wish) => wish.owner, { cascade: true })
   wishes: Wish[];
 
   @OneToMany(() => Offer, (offer) => offer.user)

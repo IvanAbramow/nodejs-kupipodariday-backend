@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
 import { DeleteResult, Repository } from 'typeorm';
 import { WishDto } from './dto/wish.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class WishesService {
@@ -10,8 +11,10 @@ export class WishesService {
     @InjectRepository(Wish) private wishesRepository: Repository<Wish>,
   ) {}
 
-  async createWish(wishDto: WishDto): Promise<Wish> {
-    return this.wishesRepository.save(wishDto);
+  async createWish(user: User, wishDto: WishDto) {
+    const wish = this.wishesRepository.create({ ...wishDto, owner: user });
+
+    return this.wishesRepository.save(wish);
   }
 
   async copyWishById(id: number): Promise<Wish> {
@@ -24,12 +27,14 @@ export class WishesService {
 
   async getLastWish() {
     return this.wishesRepository.findOne({
+      where: {},
       order: { id: 'DESC' },
     });
   }
 
   async getTopWish() {
     return this.wishesRepository.findOne({
+      where: {},
       order: { raised: 'DESC' },
     });
   }

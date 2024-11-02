@@ -12,7 +12,8 @@ export class UsersService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly hashService: HashService,
-  ) {}
+  ) {
+  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const hashedPassword = await this.hashService.hashPassword(
@@ -27,6 +28,13 @@ export class UsersService {
 
   async findByUsername(username: string) {
     return this.userRepository.findOneBy({ username });
+  }
+
+  async getUserWishes(user: User, relations: string[]) {
+    return this.userRepository.findOne({
+      where: { id: user.id },
+      relations,
+    });
   }
 
   async findByEmail(email: string): Promise<User> {

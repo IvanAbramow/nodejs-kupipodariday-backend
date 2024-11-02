@@ -7,7 +7,7 @@ import { plainToClass } from 'class-transformer';
 import { SigninDto } from './dto/signin.dto';
 import { LocalGuard } from './guards/local.guard';
 
-@Controller('auth')
+@Controller()
 export class AuthController {
   constructor(
     private readonly usersService: UsersService,

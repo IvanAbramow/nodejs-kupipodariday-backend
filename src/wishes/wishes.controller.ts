@@ -6,21 +6,26 @@ import {
   NotFoundException,
   Param,
   Patch,
-  Post,
+  Post, UseGuards,
 } from '@nestjs/common';
 import { WishesService } from './wishes.service';
 import { WishDto } from './dto/wish.dto';
+import { AuthUser } from '../auth/decorators/auth.decorator';
+import { User } from '../users/entities/user.entity';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @Controller('wishes')
 export class WishesController {
   constructor(private readonly wishesService: WishesService) {}
 
   @Post()
-  createWish(@Body() wishDto: WishDto) {
-    return this.wishesService.createWish(wishDto);
+  @UseGuards(JwtGuard)
+  createWish(@AuthUser() user: User, @Body() wishDto: WishDto) {
+    return this.wishesService.createWish(user, wishDto);
   }
 
   @Post('/copy')
+  @UseGuards(JwtGuard)
   copyWish(@Param('id') id: number) {
     return this.wishesService.copyWishById(id);
   }
@@ -36,6 +41,7 @@ export class WishesController {
   }
 
   @Get('/:id')
+  @UseGuards(JwtGuard)
   async getWishById(@Param('id') id: number) {
     const wish = await this.wishesService.getWishById(id);
 
@@ -47,6 +53,7 @@ export class WishesController {
   }
 
   @Patch('/:id')
+  @UseGuards(JwtGuard)
   async updateWishById(@Param('id') id: number, @Body() wishDto: WishDto) {
     const wish = await this.wishesService.getWishById(id);
 
@@ -58,6 +65,7 @@ export class WishesController {
   }
 
   @Delete('/:id')
+  @UseGuards(JwtGuard)
   async deleteWishById(@Param('id') id: number) {
     const wish = await this.wishesService.getWishById(id);
 

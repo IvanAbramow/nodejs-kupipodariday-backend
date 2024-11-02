@@ -1,4 +1,4 @@
-import { IsUrl, Length } from 'class-validator';
+import { IsString, IsUrl, Length } from 'class-validator';
 
 export class WishDto {
   @Length(1, 250)
