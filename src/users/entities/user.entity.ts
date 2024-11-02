@@ -1,9 +1,11 @@
 import {
-  Column, CreateDateColumn,
+  Column,
+  CreateDateColumn,
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
-  Unique, UpdateDateColumn,
+  Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { IsEmail, IsUrl, Length } from 'class-validator';
 import { Wish } from '../../wishes/entities/wish.entity';
