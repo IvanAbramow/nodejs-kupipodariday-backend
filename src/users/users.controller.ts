@@ -4,7 +4,8 @@ import {
   Get,
   NotFoundException,
   Param,
-  Patch, Post,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { JwtGuard } from '../auth/guards/jwt.guard';
@@ -13,6 +14,7 @@ import { AuthUser } from '../auth/decorators/auth.decorator';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/createUser.dto';
 import { plainToClass } from 'class-transformer';
+import { FindManyOptions } from 'typeorm';
 
 @Controller('users')
 @UseGuards(JwtGuard)
@@ -36,9 +38,7 @@ export class UsersController {
 
   @Get('/me/wishes')
   async getMyWishes(@AuthUser() user: User) {
-    const userInfo = await this.usersService.getUserWishes(user, ['wishes']);
-
-    return userInfo.wishes;
+    return this.usersService.getUserWishes(user);
   }
 
   @Get('/:username/wishes')
@@ -70,6 +70,11 @@ export class UsersController {
 
   @Post('/find')
   findByQuery(@Body('query') query: string) {
-    return this.usersService.findMany(query);
+    const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
+    const queryOptions: FindManyOptions<User> = emailRegexp.test(query)
+      ? { where: { email: query } }
+      : { where: { username: query } };
+
+    return this.usersService.findMany(queryOptions);
   }
 }

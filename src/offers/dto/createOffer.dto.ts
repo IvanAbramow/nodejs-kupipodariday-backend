@@ -1,8 +1,9 @@
 import { Optional } from '@nestjs/common';
-import { MinLength } from 'class-validator';
+import { IsNumber, IsPositive, MinLength } from 'class-validator';
 
 export class CreateOfferDto {
-  @MinLength(1)
+  @IsNumber()
+  @IsPositive()
   amount: number;
 
   @MinLength(1)

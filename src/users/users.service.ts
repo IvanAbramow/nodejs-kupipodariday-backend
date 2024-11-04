@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { HashService } from '../hash/hash.service';
 import { plainToClass } from 'class-transformer';
@@ -30,10 +30,10 @@ export class UsersService {
     return this.userRepository.findOneBy({ username });
   }
 
-  async getUserWishes(user: User, relations: string[]) {
-    return this.userRepository.findOne({
+  async getUserWishes(user: User) {
+    return this.userRepository.find({
       where: { id: user.id },
-      relations,
+      relations: ['wishes', 'wishes.owner', 'wishes.offers'],
     });
   }
 
@@ -62,17 +62,7 @@ export class UsersService {
     return this.findById(id);
   }
 
-  async findMany(query: string) {
-    const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
-
-    const user = emailRegexp.test(query)
-      ? await this.findByEmail(query)
-      : await this.findByUsername(query);
-
-    if (!user) {
-      throw new NotFoundException(`User with ${query} not found`);
-    }
-
-    return [plainToClass(User, user)];
+  async findMany(query: FindManyOptions<User>) {
+    return this.userRepository.find(query);
   }
 }

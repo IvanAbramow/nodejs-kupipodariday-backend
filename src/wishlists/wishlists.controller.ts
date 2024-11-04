@@ -11,7 +11,7 @@ import {
 import { WishlistsService } from './wishlists.service';
 import { WishlistDto } from './dto/wishlist.dto';
 
-@Controller('wishlists')
+@Controller('wishlistlists')
 export class WishlistsController {
   constructor(private readonly wishlistService: WishlistsService) {}
 

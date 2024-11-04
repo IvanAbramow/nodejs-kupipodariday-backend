@@ -9,7 +9,8 @@ import { User } from '../users/entities/user.entity';
 export class WishesService {
   constructor(
     @InjectRepository(Wish) private wishesRepository: Repository<Wish>,
-  ) {}
+  ) {
+  }
 
   async createWish(user: User, wishDto: WishDto) {
     const wish = this.wishesRepository.create({ ...wishDto, owner: user });
@@ -26,21 +27,26 @@ export class WishesService {
   }
 
   async getLastWish() {
-    return this.wishesRepository.findOne({
-      where: {},
-      order: { id: 'DESC' },
+    return this.wishesRepository.find({
+      relations: ['owner'],
+      order: { copied: 'DESC' },
+      take: 40,
     });
   }
 
   async getTopWish() {
-    return this.wishesRepository.findOne({
-      where: {},
-      order: { raised: 'DESC' },
+    return this.wishesRepository.find({
+      relations: ['owner'],
+      order: { copied: 'DESC' },
+      take: 20,
     });
   }
 
   async getWishById(id: number): Promise<Wish> {
-    return this.wishesRepository.findOneBy({ id });
+    return this.wishesRepository.findOne({
+      where: { id },
+      relations: ['owner', 'offers'],
+    });
   }
 
   async deleteWishById(id: number): Promise<DeleteResult> {
