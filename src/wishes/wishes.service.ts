@@ -9,8 +9,7 @@ import { User } from '../users/entities/user.entity';
 export class WishesService {
   constructor(
     @InjectRepository(Wish) private wishesRepository: Repository<Wish>,
-  ) {
-  }
+  ) {}
 
   async createWish(user: User, wishDto: WishDto) {
     const wish = this.wishesRepository.create({ ...wishDto, owner: user });
@@ -57,5 +56,9 @@ export class WishesService {
     await this.wishesRepository.update(id, wishDto);
 
     return this.wishesRepository.findOneBy({ id });
+  }
+
+  async updateRaised(id: number, updateData: any) {
+    return this.wishesRepository.update(id, updateData);
   }
 }

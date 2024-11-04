@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Param,
   Patch,
-  Post,
+  Post, Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtGuard } from '../auth/guards/jwt.guard';
@@ -19,8 +19,7 @@ import { FindManyOptions } from 'typeorm';
 @Controller('users')
 @UseGuards(JwtGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {
-  }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('/me')
   async getUserInfo(@AuthUser() user: User) {
@@ -49,7 +48,7 @@ export class UsersController {
       throw new NotFoundException(`User with username ${username} not found`);
     }
 
-    return user.wishes;
+    return this.usersService.getWishesByUsername(username);
   }
 
   @Patch('/me')

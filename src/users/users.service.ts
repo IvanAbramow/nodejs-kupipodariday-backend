@@ -1,19 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { FindManyOptions, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { HashService } from '../hash/hash.service';
-import { plainToClass } from 'class-transformer';
+import { Wish } from '../wishes/entities/wish.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Wish)
+    private wishRepository: Repository<Wish>,
     private readonly hashService: HashService,
-  ) {
-  }
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const hashedPassword = await this.hashService.hashPassword(
@@ -31,9 +32,16 @@ export class UsersService {
   }
 
   async getUserWishes(user: User) {
-    return this.userRepository.find({
-      where: { id: user.id },
-      relations: ['wishes', 'wishes.owner', 'wishes.offers'],
+    return this.wishRepository.find({
+      where: { owner: { id: user.id } },
+      relations: ['owner', 'offers'],
+    });
+  }
+
+  async getWishesByUsername(username: string) {
+    return this.wishRepository.find({
+      where: { owner: { username } },
+      relations: ['owner', 'offers'],
     });
   }
 
