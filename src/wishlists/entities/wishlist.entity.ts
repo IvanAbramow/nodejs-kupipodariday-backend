@@ -1,13 +1,11 @@
 import {
-  Column,
-  CreateDateColumn,
+  Column, CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
+  ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
-import { Length } from 'class-validator';
+import { IsString, IsUrl, Length } from 'class-validator';
 import { Wish } from '../../wishes/entities/wish.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -24,18 +22,17 @@ export class Wishlist {
 
   @Column()
   @Length(1, 250)
+  @IsString()
   name: string;
 
   @Column()
-  @Length(0, 1500)
-  description: string;
-
-  @Column()
+  @IsUrl()
   image: string;
 
-  @ManyToMany(() => Wish, (wish) => wish.id)
+  @ManyToMany(() => Wish, (wish) => wish.name)
+  @JoinTable()
   items: Wish[];
 
   @ManyToOne(() => User, (user) => user.wishlists)
-  user: User;
+  owner: User;
 }

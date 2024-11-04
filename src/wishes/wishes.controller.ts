@@ -24,10 +24,10 @@ export class WishesController {
     return this.wishesService.createWish(user, wishDto);
   }
 
-  @Post('/copy')
+  @Post('/:id/copy')
   @UseGuards(JwtGuard)
-  copyWish(@Param('id') id: number) {
-    return this.wishesService.copyWishById(id);
+  copyWish(@AuthUser() user: User, @Param('id') id: number) {
+    return this.wishesService.copyWishById(user, id);
   }
 
   @Get('/last')

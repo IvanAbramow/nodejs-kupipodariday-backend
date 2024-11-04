@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
 import { DeleteResult, Repository } from 'typeorm';
@@ -17,12 +17,13 @@ export class WishesService {
     return this.wishesRepository.save(wish);
   }
 
-  async copyWishById(id: number): Promise<Wish> {
-    const wish = await this.wishesRepository.findOneBy({ id });
+  async copyWishById(user: User, id: number) {
+    const wish = await this.getWishById(id);
+    const copiedWish = await this.createWish(user, wish);
 
-    delete wish.id;
-
-    return this.wishesRepository.save({ ...wish });
+    return this.wishesRepository.update(id, {
+      copied: copiedWish.copied + 1,
+    });
   }
 
   async getLastWish() {
@@ -58,7 +59,19 @@ export class WishesService {
     return this.wishesRepository.findOneBy({ id });
   }
 
-  async updateRaised(id: number, updateData: any) {
-    return this.wishesRepository.update(id, updateData);
+  async updateRaised(id: number, raised: number) {
+    return this.wishesRepository.update(id, { raised });
+  }
+
+  async getWishListByIds(ids: number[]): Promise<Wish[]> {
+    const wishes = await this.wishesRepository
+      .createQueryBuilder('item')
+      .where('item.id IN (:...ids)', { ids })
+      .getMany();
+
+    if (!wishes) {
+      throw new NotFoundException('WishesNotFound');
+    }
+    return wishes;
   }
 }
