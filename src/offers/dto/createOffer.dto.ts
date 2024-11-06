@@ -1,14 +1,14 @@
-import { Optional } from '@nestjs/common';
-import { IsNumber, IsPositive, MinLength } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class CreateOfferDto {
   @IsNumber()
-  @IsPositive()
+  @Min(1)
   amount: number;
 
-  @MinLength(1)
-  itemId: number;
-
-  @Optional()
+  @IsBoolean()
+  @IsOptional()
   hidden: boolean;
+
+  @IsNumber()
+  itemId: number;
 }

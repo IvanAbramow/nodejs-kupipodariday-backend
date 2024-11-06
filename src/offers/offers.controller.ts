@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Post, UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/createOffer.dto';
 import { AuthUser } from '../auth/decorators/auth.decorator';

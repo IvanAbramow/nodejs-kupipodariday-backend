@@ -1,20 +1,10 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Patch,
-  Post, Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { UsersService } from './users.service';
 import { AuthUser } from '../auth/decorators/auth.decorator';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/createUser.dto';
-import { plainToClass } from 'class-transformer';
-import { FindManyOptions } from 'typeorm';
+import { plainToClass, plainToInstance } from 'class-transformer';
+import { UpdateUserDto } from './dto/updateUser.dto';
 
 @Controller('users')
 @UseGuards(JwtGuard)
@@ -25,12 +15,22 @@ export class UsersController {
   async getUserInfo(@AuthUser() user: User) {
     const userInfo = await this.usersService.findById(user.id);
 
+    if (!userInfo) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
     return plainToClass(User, userInfo);
   }
 
   @Get('/:username')
   async getUserByUsername(@Param('username') username: string) {
     const user = await this.usersService.findByUsername(username);
+
+    if (!user) {
+      throw new NotFoundException(
+        `Пользователь с username ${username} не найден`,
+      );
+    }
 
     return plainToClass(User, user);
   }
@@ -42,38 +42,26 @@ export class UsersController {
 
   @Get('/:username/wishes')
   async getWishesByUsername(@Param('username') username: string) {
-    const user = await this.usersService.findByUsername(username);
-
-    if (!user) {
-      throw new NotFoundException(`User with username ${username} not found`);
-    }
-
     return this.usersService.getWishesByUsername(username);
   }
 
   @Patch('/me')
   async updateUserInfo(
     @AuthUser() user: User,
-    @Body() updateParams: CreateUserDto,
+    @Body() updateUserParams: UpdateUserDto,
   ) {
-    const userInfo = await this.usersService.findById(user.id);
+    const updatedUser = await this.usersService.updateUserInfo(
+      user.id,
+      updateUserParams,
+    );
 
-    if (!userInfo) {
-      throw new NotFoundException(`User with id ${user.id} not found`);
-    }
-
-    const _user = await this.usersService.updateUserInfo(user.id, updateParams);
-
-    return plainToClass(User, _user);
+    return plainToClass(User, updatedUser);
   }
 
   @Post('/find')
-  findByQuery(@Body('query') query: string) {
-    const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
-    const queryOptions: FindManyOptions<User> = emailRegexp.test(query)
-      ? { where: { email: query } }
-      : { where: { username: query } };
+  async findByQuery(@Body('query') query: string) {
+    const users = await this.usersService.findMany(query);
 
-    return this.usersService.findMany(queryOptions);
+    return plainToInstance(User, users);
   }
 }

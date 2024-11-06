@@ -1,60 +1,148 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
-import { DeleteResult, Repository } from 'typeorm';
-import { WishDto } from './dto/wish.dto';
+import { DataSource, Repository } from 'typeorm';
+import { CreateWishDto } from './dto/createWish.dto';
 import { User } from '../users/entities/user.entity';
+import { plainToInstance } from 'class-transformer';
+import { ServerException } from '../exceptions/server.exception';
+import { UpdateWishDto } from './dto/updateWish.dto';
 
 @Injectable()
 export class WishesService {
   constructor(
     @InjectRepository(Wish) private wishesRepository: Repository<Wish>,
+    private dataSource: DataSource,
   ) {}
 
-  async createWish(user: User, wishDto: WishDto) {
+  async createWish(user: User, wishDto: CreateWishDto) {
     const wish = this.wishesRepository.create({ ...wishDto, owner: user });
+    await this.wishesRepository.save(wish);
 
-    return this.wishesRepository.save(wish);
+    return null;
   }
 
   async copyWishById(user: User, id: number) {
-    const wish = await this.getWishById(id);
-    const copiedWish = await this.createWish(user, wish);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    return this.wishesRepository.update(id, {
-      copied: copiedWish.copied + 1,
-    });
+    try {
+      const wish = await this.getWishById(id);
+      const wishCopies = wish.copied;
+
+      delete wish.id;
+      delete wish.owner;
+      delete wish.createdAt;
+      delete wish.updatedAt;
+      delete wish.raised;
+      delete wish.copied;
+
+      await this.createWish(user, wish);
+      await this.wishesRepository.update(id, {
+        copied: wishCopies + 1,
+      });
+
+      await queryRunner.commitTransaction();
+
+      return null;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async getLastWish() {
-    return this.wishesRepository.find({
+    const wishes = await this.wishesRepository.find({
       relations: ['owner'],
       order: { copied: 'DESC' },
       take: 40,
     });
+
+    return wishes.map((wish) => ({
+      ...wish,
+      owner: plainToInstance(User, wish.owner),
+    }));
   }
 
   async getTopWish() {
-    return this.wishesRepository.find({
+    const wishes = await this.wishesRepository.find({
       relations: ['owner'],
       order: { copied: 'DESC' },
       take: 20,
     });
+
+    return wishes.map((wish) => ({
+      ...wish,
+      owner: plainToInstance(User, wish.owner),
+    }));
   }
 
   async getWishById(id: number): Promise<Wish> {
-    return this.wishesRepository.findOne({
+    const wish = await this.wishesRepository.findOne({
       where: { id },
       relations: ['owner', 'offers'],
     });
+
+    if (!wish) {
+      throw new NotFoundException(`Подарок с id ${id} не найден`);
+    }
+
+    return {
+      ...wish,
+      owner: plainToInstance(User, wish.owner),
+    };
   }
 
-  async deleteWishById(id: number): Promise<DeleteResult> {
-    return this.wishesRepository.delete(id);
+  async deleteWishById(userId: number, id: number) {
+    const wish = await this.getWishById(id);
+
+    if (userId !== wish.owner.id) {
+      throw new ServerException(
+        403,
+        'Вы не являетесь владельцем этого подарка',
+      );
+    }
+
+    await this.wishesRepository
+      .createQueryBuilder()
+      .update('offer')
+      .set({ item: null }) // or set to another appropriate value
+      .where('item = :id', { id })
+      .execute();
+
+    await this.wishesRepository.delete(id);
   }
 
-  async updateWishById(id: number, wishDto: WishDto): Promise<Wish> {
-    await this.wishesRepository.update(id, wishDto);
+  async updateWishById({
+    userId,
+    id,
+    updateWishDto,
+  }: {
+    userId: number;
+    id: number;
+    updateWishDto: UpdateWishDto;
+  }): Promise<Wish> {
+    const wish = await this.getWishById(id);
+
+    if (userId !== wish.owner.id) {
+      throw new ServerException(
+        403,
+        'Вы не являетесь владельцем этого подарка',
+      );
+    }
+
+    if (updateWishDto.price) {
+      if (wish.raised > 0) {
+        throw new ServerException(
+          403,
+          'Нельзя изменить подарок, на который начали сбор',
+        );
+      }
+    }
+
+    await this.wishesRepository.update(id, updateWishDto);
 
     return this.wishesRepository.findOneBy({ id });
   }

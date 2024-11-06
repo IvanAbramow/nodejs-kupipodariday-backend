@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { FindManyOptions, Repository } from 'typeorm';
+import { EntityPropertyNotFoundError, FindManyOptions, QueryFailedError, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { HashService } from '../hash/hash.service';
 import { Wish } from '../wishes/entities/wish.entity';
+import { ServerException } from '../exceptions/server.exception';
+import { UpdateUserDto } from './dto/updateUser.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -17,14 +20,28 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const hashedPassword = await this.hashService.hashPassword(
-      createUserDto.password,
-    );
+    try {
+      const hashedPassword = await this.hashService.hashPassword(
+        createUserDto.password,
+      );
 
-    return this.userRepository.save({
-      ...createUserDto,
-      password: hashedPassword,
-    });
+      return await this.userRepository.save({
+        ...createUserDto,
+        password: hashedPassword,
+      });
+    } catch (err) {
+      if (err instanceof QueryFailedError) {
+        throw new ServerException(
+          409,
+          'Пользователь с таким email или username уже зарегистрирован',
+        );
+      }
+    }
+
+    throw new ServerException(
+      500,
+      'Произошла ошибка при создании пользователя',
+    );
   }
 
   async findByUsername(username: string) {
@@ -32,45 +49,73 @@ export class UsersService {
   }
 
   async getUserWishes(user: User) {
-    return this.wishRepository.find({
+    const wishes = await this.wishRepository.find({
       where: { owner: { id: user.id } },
       relations: ['owner', 'offers'],
     });
+
+    return wishes.map((wish) => ({
+      ...wish,
+      owner: plainToInstance(User, wish.owner),
+    }));
   }
 
   async getWishesByUsername(username: string) {
-    return this.wishRepository.find({
-      where: { owner: { username } },
-      relations: ['owner', 'offers'],
-    });
-  }
+    const user = await this.findByUsername(username);
 
-  async findByEmail(email: string): Promise<User> {
-    return await this.userRepository.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException(
+        `Пользователь с username ${username} не найден`,
+      );
+    }
+
+    return this.getUserWishes(user);
   }
 
   async findById(id: number) {
     return this.userRepository.findOneBy({ id });
   }
 
-  async updateUserInfo(id: number, userInfo: CreateUserDto) {
-    if (userInfo.password) {
-      const hashedPassword = await this.hashService.hashPassword(
-        userInfo.password,
-      );
+  async updateUserInfo(userId: number, updateUserParams: UpdateUserDto) {
+    try {
+      const user = await this.findById(userId);
 
-      await this.userRepository.update(id, {
-        ...userInfo,
-        password: hashedPassword,
-      });
-    } else {
-      await this.userRepository.update(id, userInfo);
+      if (!user) {
+        throw new NotFoundException(`Пользователь с id ${userId} не найден`);
+      }
+
+      if (updateUserParams.password) {
+        const hashedPassword = await this.hashService.hashPassword(
+          updateUserParams.password,
+        );
+
+        await this.userRepository.update(userId, {
+          ...updateUserParams,
+          password: hashedPassword,
+        });
+      } else {
+        await this.userRepository.update(userId, updateUserParams);
+      }
+
+      return this.findById(userId);
+    } catch (err) {
+      if (err instanceof EntityPropertyNotFoundError) {
+        const propertyName = err.message.match(/Property "([^"]+)"/)[1];
+        throw new ServerException(
+          400,
+          `Поле ${propertyName} должно отсутствовать`,
+        );
+      }
+      throw new ServerException(500, 'Ошибка сервера');
     }
-
-    return this.findById(id);
   }
 
-  async findMany(query: FindManyOptions<User>) {
-    return this.userRepository.find(query);
+  async findMany(query: string) {
+    const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
+    const queryOptions: FindManyOptions<User> = emailRegexp.test(query)
+      ? { where: { email: query } }
+      : { where: { username: query } };
+
+    return this.userRepository.find(queryOptions);
   }
 }

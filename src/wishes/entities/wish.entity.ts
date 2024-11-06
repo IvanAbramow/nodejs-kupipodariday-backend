@@ -11,6 +11,11 @@ import { IsUrl, Length } from 'class-validator';
 import { User } from '../../users/entities/user.entity';
 import { Offer } from '../../offers/entities/offer.entity';
 
+const numberTransformer = {
+  to: (value: number) => value,
+  from: (value: string) => parseFloat(value),
+};
+
 @Entity()
 export class Wish {
   @PrimaryGeneratedColumn()
@@ -33,10 +38,21 @@ export class Wish {
   @IsUrl()
   image: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: numberTransformer,
+  })
   price: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: numberTransformer,
+  })
   raised: number;
 
   @ManyToOne(() => User, (user) => user.wishes)
