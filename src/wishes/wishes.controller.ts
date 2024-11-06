@@ -45,7 +45,11 @@ export class WishesController {
     @Param('id') id: number,
     @Body() updateWishDto: UpdateWishDto,
   ) {
-    return this.wishesService.updateWishById({ userId: user.id, id, updateWishDto });
+    return this.wishesService.updateWishById({
+      userId: user.id,
+      id,
+      updateWishDto,
+    });
   }
 
   @Delete('/:id')

@@ -1,12 +1,15 @@
-import { Optional } from '@nestjs/common';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class WishlistDto {
-  @Optional()
+  @IsString()
+  @IsOptional()
   name: string;
 
-  @Optional()
+  @IsString()
+  @IsOptional()
   image: string;
 
-  @Optional()
+  @IsArray()
+  @IsOptional()
   itemsId: number[];
 }

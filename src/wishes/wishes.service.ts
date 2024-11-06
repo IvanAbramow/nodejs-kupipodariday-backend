@@ -108,7 +108,7 @@ export class WishesService {
     await this.wishesRepository
       .createQueryBuilder()
       .update('offer')
-      .set({ item: null }) // or set to another appropriate value
+      .set({ item: null })
       .where('item = :id', { id })
       .execute();
 
@@ -151,15 +151,10 @@ export class WishesService {
     return this.wishesRepository.update(id, { raised });
   }
 
-  async getWishListByIds(ids: number[]): Promise<Wish[]> {
-    const wishes = await this.wishesRepository
+  async getWishesByIds(ids: number[]): Promise<Wish[]> {
+    return this.wishesRepository
       .createQueryBuilder('item')
       .where('item.id IN (:...ids)', { ids })
       .getMany();
-
-    if (!wishes) {
-      throw new NotFoundException('WishesNotFound');
-    }
-    return wishes;
   }
 }

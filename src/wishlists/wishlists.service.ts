@@ -1,11 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wishlist } from './entities/wishlist.entity';
-import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+import { Repository } from 'typeorm';
 import { WishlistDto } from './dto/wishlist.dto';
 import { WishesService } from '../wishes/wishes.service';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
+import { plainToInstance } from 'class-transformer';
+import { ServerException } from '../exceptions/server.exception';
 
 @Injectable()
 export class WishlistsService {
@@ -19,35 +21,92 @@ export class WishlistsService {
   async create(user: User, createWishlistDto: WishlistDto): Promise<Wishlist> {
     const { itemsId, ...rest } = createWishlistDto;
 
-    const items = await this.wishesService.getWishListByIds(itemsId);
+    const items = await this.wishesService.getWishesByIds(itemsId);
     const owner = await this.usersService.findById(user.id);
 
-     return this.wishlistRepository.save({
+    const wishlist = await this.wishlistRepository.save({
       ...rest,
       items,
       owner,
     });
+
+    return {
+      ...wishlist,
+      owner: plainToInstance(User, wishlist.owner),
+    };
   }
 
   async getAllLists(): Promise<Wishlist[]> {
-    return this.wishlistRepository.find();
+    const wishlists = await this.wishlistRepository.find({
+      relations: ['items', 'owner'],
+    });
+
+    return wishlists.map((wishlist) => ({
+      ...wishlist,
+      owner: plainToInstance(User, wishlist.owner),
+    }));
   }
 
   async getById(id: number) {
-    return this.wishlistRepository.findOne({
-      relations: ['items', 'owner'],
+    const wishlist = await this.wishlistRepository.findOne({
       where: { id },
+      relations: ['items', 'owner'],
     });
+
+    if (!wishlist) {
+      throw new NotFoundException(`Список желаний с id ${id} не найден`);
+    }
+
+    return {
+      ...wishlist,
+      owner: plainToInstance(User, wishlist.owner),
+    };
   }
 
-  async deleteById(id: number): Promise<DeleteResult> {
-    return this.wishlistRepository.delete(id);
+  async deleteById(userId: number, id: number) {
+    const wish = await this.getById(id);
+
+    if (userId !== wish.owner.id) {
+      throw new ServerException(
+        403,
+        'Вы не являетесь владельцем этого списка желаний',
+      );
+    }
+
+    await this.wishlistRepository.delete(id);
   }
 
-  async updateById(
-    id: number,
-    createWishlistDto: WishlistDto,
-  ): Promise<UpdateResult> {
-    return this.wishlistRepository.update(id, createWishlistDto);
+  async updateById({
+    userId,
+    id,
+    updateWishlistDto,
+  }: {
+    userId: number;
+    id: number;
+    updateWishlistDto: WishlistDto;
+  }) {
+    const wishlist = await this.getById(id);
+
+    if (userId !== wishlist.owner.id) {
+      throw new ServerException(
+        403,
+        'Вы не являетесь владельцем этого списка желаний',
+      );
+    }
+
+    if (updateWishlistDto.itemsId) {
+      for (const itemId of updateWishlistDto.itemsId) {
+        await this.wishesService.getWishById(itemId);
+      }
+
+      wishlist.items = await this.wishesService.getWishesByIds(
+        updateWishlistDto.itemsId,
+      );
+    }
+
+    Object.assign(wishlist, updateWishlistDto);
+    await this.wishlistRepository.save(wishlist);
+
+    return this.getById(id);
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/createOffer.dto';
 import { AuthUser } from '../auth/decorators/auth.decorator';
@@ -22,12 +22,6 @@ export class OffersController {
 
   @Get('/:id')
   async getOfferById(@Param('id') id: number) {
-    const offer = await this.offersService.getOfferById(id);
-
-    if (!offer) {
-      throw new NotFoundException(`Offer with id ${id} not found`);
-    }
-
-    return offer;
+    return this.offersService.getOfferById(id);
   }
 }

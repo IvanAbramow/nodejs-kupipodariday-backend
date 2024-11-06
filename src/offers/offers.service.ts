@@ -78,6 +78,12 @@ export class OffersService {
   }
 
   async getOfferById(id: number) {
-    return this.offerRepository.findOneBy({ id });
+    const offer = await this.offerRepository.findOneBy({ id });
+
+    if (!offer) {
+      throw new ServerException(404, 'Предложение не найдено');
+    }
+
+    return offer;
   }
 }

@@ -7,7 +7,7 @@ import { HashService } from '../hash/hash.service';
 import { Wish } from '../wishes/entities/wish.entity';
 import { ServerException } from '../exceptions/server.exception';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { plainToInstance } from 'class-transformer';
+import { plainToClass, plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -45,7 +45,15 @@ export class UsersService {
   }
 
   async findByUsername(username: string) {
-    return this.userRepository.findOneBy({ username });
+    const user = await this.userRepository.findOneBy({ username });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Пользователь с username ${username} не найден`,
+      );
+    }
+
+    return plainToClass(User, user);
   }
 
   async getUserWishes(user: User) {
@@ -73,7 +81,13 @@ export class UsersService {
   }
 
   async findById(id: number) {
-    return this.userRepository.findOneBy({ id });
+    const user = await this.userRepository.findOneBy({ id });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователь с id ${id} не найден`);
+    }
+
+    return plainToClass(User, user);
   }
 
   async updateUserInfo(userId: number, updateUserParams: UpdateUserDto) {
@@ -116,6 +130,8 @@ export class UsersService {
       ? { where: { email: query } }
       : { where: { username: query } };
 
-    return this.userRepository.find(queryOptions);
+    const users = await this.userRepository.find(queryOptions);
+
+    return users.map((user) => plainToClass(User, user));
   }
 }

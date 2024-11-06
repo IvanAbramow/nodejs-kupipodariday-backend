@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  NotFoundException,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { WishlistsService } from './wishlists.service';
 import { WishlistDto } from './dto/wishlist.dto';
 import { JwtGuard } from '../auth/guards/jwt.guard';
@@ -21,7 +11,10 @@ export class WishlistsController {
   constructor(private readonly wishlistService: WishlistsService) {}
 
   @Post()
-  createWishlist(@AuthUser() user: User, @Body() createWishlistDto: WishlistDto) {
+  createWishlist(
+    @AuthUser() user: User,
+    @Body() createWishlistDto: WishlistDto,
+  ) {
     return this.wishlistService.create(user, createWishlistDto);
   }
 
@@ -32,37 +25,24 @@ export class WishlistsController {
 
   @Get('/:id')
   async getWishlistById(@Param('id') id: number) {
-    const wishList = await this.wishlistService.getById(id);
-
-    if (!wishList) {
-      throw new NotFoundException('Wishlist not found');
-    }
-
-    return wishList;
+    return this.wishlistService.getById(id);
   }
 
   @Patch('/:id')
   async updateWishlistById(
+    @AuthUser() user: User,
     @Param('id') id: number,
-    @Body() createWishlistDto: WishlistDto,
+    @Body() updateWishlistDto: WishlistDto,
   ) {
-    const wishlist = await this.wishlistService.getById(id);
-
-    if (!wishlist) {
-      throw new NotFoundException('Wishlist not found');
-    }
-
-    return this.wishlistService.updateById(id, createWishlistDto);
+    return this.wishlistService.updateById({
+      userId: user.id,
+      id,
+      updateWishlistDto,
+    });
   }
 
   @Delete('/:id')
-  async deleteWishlistById(@Param('id') id: number) {
-    const wishlist = await this.wishlistService.getById(id);
-
-    if (!wishlist) {
-      throw new NotFoundException('Wishlist not found');
-    }
-
-    return this.wishlistService.deleteById(id);
+  async deleteWishlistById(@AuthUser() user: User, @Param('id') id: number) {
+    return this.wishlistService.deleteById(user.id, id);
   }
 }
