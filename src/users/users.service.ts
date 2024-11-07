@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { EntityPropertyNotFoundError, FindManyOptions, QueryFailedError, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { HashService } from '../hash/hash.service';
 import { Wish } from '../wishes/entities/wish.entity';
-import { ServerException } from '../exceptions/server.exception';
+import { CustomException } from '../exceptions/custom.exception';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { plainToClass, plainToInstance } from 'class-transformer';
+import { ERROR_MESSAGES } from '../config/errors';
+import { FindUserByQueryDto } from './dto/findUserByQuery.dto';
 
 @Injectable()
 export class UsersService {
@@ -31,29 +33,21 @@ export class UsersService {
       });
     } catch (err) {
       if (err instanceof QueryFailedError) {
-        throw new ServerException(
-          409,
-          'Пользователь с таким email или username уже зарегистрирован',
-        );
+        throw new CustomException(ERROR_MESSAGES.CONFLICT_CREDENTIALS);
       }
     }
 
-    throw new ServerException(
-      500,
-      'Произошла ошибка при создании пользователя',
-    );
+    throw new CustomException(ERROR_MESSAGES.SERVER_ERROR);
   }
 
-  async findByUsername(username: string) {
+  async findByUsername(username: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ username });
 
     if (!user) {
-      throw new NotFoundException(
-        `Пользователь с username ${username} не найден`,
-      );
+      throw new CustomException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    return plainToClass(User, user);
+    return user;
   }
 
   async getUserWishes(user: User) {
@@ -68,35 +62,28 @@ export class UsersService {
     }));
   }
 
-  async getWishesByUsername(username: string) {
+  async getWishesByUsername(username: string): Promise<Wish[]> {
     const user = await this.findByUsername(username);
-
-    if (!user) {
-      throw new NotFoundException(
-        `Пользователь с username ${username} не найден`,
-      );
-    }
 
     return this.getUserWishes(user);
   }
 
-  async findById(id: number) {
+  async findById(id: number): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException(`Пользователь с id ${id} не найден`);
+      throw new CustomException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return plainToClass(User, user);
   }
 
-  async updateUserInfo(userId: number, updateUserParams: UpdateUserDto) {
+  async updateUserInfo(
+    userId: number,
+    updateUserParams: UpdateUserDto,
+  ): Promise<User> {
     try {
-      const user = await this.findById(userId);
-
-      if (!user) {
-        throw new NotFoundException(`Пользователь с id ${userId} не найден`);
-      }
+      await this.findById(userId);
 
       if (updateUserParams.password) {
         const hashedPassword = await this.hashService.hashPassword(
@@ -115,20 +102,22 @@ export class UsersService {
     } catch (err) {
       if (err instanceof EntityPropertyNotFoundError) {
         const propertyName = err.message.match(/Property "([^"]+)"/)[1];
-        throw new ServerException(
-          400,
+        throw new BadRequestException(
           `Поле ${propertyName} должно отсутствовать`,
         );
       }
-      throw new ServerException(500, 'Ошибка сервера');
+      throw new CustomException(ERROR_MESSAGES.SERVER_ERROR);
     }
   }
 
-  async findMany(query: string) {
+  async findMany(findUserByQueryDto: FindUserByQueryDto): Promise<User[]> {
     const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
-    const queryOptions: FindManyOptions<User> = emailRegexp.test(query)
-      ? { where: { email: query } }
-      : { where: { username: query } };
+    const queryOptions: FindManyOptions<User> = emailRegexp.test(
+      findUserByQueryDto.query,
+    )
+      ? { where: { email: findUserByQueryDto.query } }
+      : { where: { username: findUserByQueryDto.query } };
+
 
     const users = await this.userRepository.find(queryOptions);
 

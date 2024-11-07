@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wishlist } from './entities/wishlist.entity';
 import { Repository } from 'typeorm';
@@ -7,7 +7,8 @@ import { WishesService } from '../wishes/wishes.service';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
-import { ServerException } from '../exceptions/server.exception';
+import { CustomException } from '../exceptions/custom.exception';
+import { ERROR_MESSAGES } from '../config/errors';
 
 @Injectable()
 export class WishlistsService {
@@ -48,13 +49,17 @@ export class WishlistsService {
   }
 
   async getById(id: number) {
+    if (isNaN(id)) {
+      throw new BadRequestException(ERROR_MESSAGES.WISHLIST_ID_NOT_NUMBER);
+    }
+
     const wishlist = await this.wishlistRepository.findOne({
       where: { id },
       relations: ['items', 'owner'],
     });
 
     if (!wishlist) {
-      throw new NotFoundException(`Список желаний с id ${id} не найден`);
+      throw new CustomException(ERROR_MESSAGES.WISHLIST_NOT_FOUND);
     }
 
     return {
@@ -67,10 +72,7 @@ export class WishlistsService {
     const wish = await this.getById(id);
 
     if (userId !== wish.owner.id) {
-      throw new ServerException(
-        403,
-        'Вы не являетесь владельцем этого списка желаний',
-      );
+      throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISHLIST);
     }
 
     await this.wishlistRepository.delete(id);
@@ -88,10 +90,7 @@ export class WishlistsService {
     const wishlist = await this.getById(id);
 
     if (userId !== wishlist.owner.id) {
-      throw new ServerException(
-        403,
-        'Вы не являетесь владельцем этого списка желаний',
-      );
+      throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISHLIST);
     }
 
     if (updateWishlistDto.itemsId) {

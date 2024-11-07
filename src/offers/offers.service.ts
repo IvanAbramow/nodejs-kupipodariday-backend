@@ -1,11 +1,14 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Offer } from './entities/offer.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CreateOfferDto } from './dto/createOffer.dto';
 import { User } from '../users/entities/user.entity';
 import { WishesService } from '../wishes/wishes.service';
-import { ServerException } from '../exceptions/server.exception';
+import { plainToInstance } from 'class-transformer';
+import { CustomException } from '../exceptions/custom.exception';
+import { ERROR_MESSAGES } from '../config/errors';
+import { Wish } from '../wishes/entities/wish.entity';
 
 @Injectable()
 export class OffersService {
@@ -15,6 +18,33 @@ export class OffersService {
     private wishesService: WishesService,
     private dataSource: DataSource,
   ) {}
+
+  private calculateRaisedSum(currentRaised: number, amount: number): number {
+    return Number((Number(currentRaised) + Number(amount)).toFixed(2));
+  }
+
+  private validateOfferCreation({
+    user,
+    wish,
+    amount,
+  }: {
+    user: User;
+    wish: Wish;
+    amount: number;
+  }) {
+    if (user.id === wish.owner.id) {
+      throw new CustomException(ERROR_MESSAGES.FORBID_OFFER_CREATE);
+    }
+
+    if (wish.raised === wish.price) {
+      throw new CustomException(ERROR_MESSAGES.FORBID_OFFER);
+    }
+
+    const raisedSum = this.calculateRaisedSum(wish.raised, amount);
+    if (raisedSum > wish.price) {
+      throw new CustomException(ERROR_MESSAGES.FORBID_OFFER_AMOUNT);
+    }
+  }
 
   async createOffer(
     user: User,
@@ -26,26 +56,12 @@ export class OffersService {
 
     try {
       const wish = await this.wishesService.getWishById(createOfferDto.itemId);
-      if (user.id === wish.owner.id) {
-        throw new ForbiddenException(
-          'Запрещено создавать сбор на собственный подарок',
-        );
-      }
+      this.validateOfferCreation({ user, wish, amount: createOfferDto.amount });
 
-      if (wish.raised === wish.price) {
-        throw new ForbiddenException('Сбор на подарок завершен');
-      }
-
-      const raisedSum = Number(
-        (Number(wish.raised) + Number(createOfferDto.amount)).toFixed(2),
+      const raisedSum = this.calculateRaisedSum(
+        wish.raised,
+        createOfferDto.amount,
       );
-
-      if (raisedSum > wish.price) {
-        throw new ServerException(
-          403,
-          'Запрещено жертвовать на подарок больше, чем сумма подарка',
-        );
-      }
 
       await this.wishesService.updateRaised(createOfferDto.itemId, raisedSum);
 
@@ -69,21 +85,33 @@ export class OffersService {
   }
 
   async getAllOffers(): Promise<Offer[]> {
-    return this.offerRepository.find({
-      relations: {
-        user: true,
-        item: true,
-      },
+    const offers = await this.offerRepository.find({
+      relations: ['user', 'item'],
     });
+
+    return offers.map((offer) => ({
+      ...offer,
+      user: plainToInstance(User, offer.user),
+    }));
   }
 
   async getOfferById(id: number) {
-    const offer = await this.offerRepository.findOneBy({ id });
-
-    if (!offer) {
-      throw new ServerException(404, 'Предложение не найдено');
+    if (isNaN(id)) {
+      throw new BadRequestException(ERROR_MESSAGES.OFFER_ID_NOT_NUMBER);
     }
 
-    return offer;
+    const offer = await this.offerRepository.findOne({
+      where: { id },
+      relations: ['user', 'item'],
+    });
+
+    if (!offer) {
+      throw new CustomException(ERROR_MESSAGES.OFFER_NOT_FOUND);
+    }
+
+    return {
+      ...offer,
+      user: plainToInstance(User, offer.user),
+    };
   }
 }

@@ -4,6 +4,8 @@ import { UsersService } from './users.service';
 import { AuthUser } from '../auth/decorators/auth.decorator';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/updateUser.dto';
+import { plainToClass } from 'class-transformer';
+import { FindUserByQueryDto } from './dto/findUserByQuery.dto';
 
 @Controller('users')
 @UseGuards(JwtGuard)
@@ -17,7 +19,9 @@ export class UsersController {
 
   @Get('/:username')
   async getUserByUsername(@Param('username') username: string) {
-    return this.usersService.findByUsername(username);
+    const user = await this.usersService.findByUsername(username);
+
+    return plainToClass(User, user);
   }
 
   @Get('/me/wishes')
@@ -39,7 +43,7 @@ export class UsersController {
   }
 
   @Post('/find')
-  async findByQuery(@Body('query') query: string) {
-    return this.usersService.findMany(query);
+  async findByQuery(@Body() findUserByQueryDto: FindUserByQueryDto) {
+    return this.usersService.findMany(findUserByQueryDto);
   }
 }

@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CreateWishDto } from './dto/createWish.dto';
 import { User } from '../users/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
-import { ServerException } from '../exceptions/server.exception';
 import { UpdateWishDto } from './dto/updateWish.dto';
+import { CustomException } from '../exceptions/custom.exception';
+import { ERROR_MESSAGES } from '../config/errors';
 
 @Injectable()
 export class WishesService {
@@ -80,13 +81,17 @@ export class WishesService {
   }
 
   async getWishById(id: number): Promise<Wish> {
+    if (isNaN(id)) {
+      throw new BadRequestException(ERROR_MESSAGES.WISH_ID_NOT_NUMBER);
+    }
+
     const wish = await this.wishesRepository.findOne({
       where: { id },
       relations: ['owner', 'offers'],
     });
 
     if (!wish) {
-      throw new NotFoundException(`Подарок с id ${id} не найден`);
+      throw new CustomException(ERROR_MESSAGES.WISH_NOT_FOUND);
     }
 
     return {
@@ -99,10 +104,7 @@ export class WishesService {
     const wish = await this.getWishById(id);
 
     if (userId !== wish.owner.id) {
-      throw new ServerException(
-        403,
-        'Вы не являетесь владельцем этого подарка',
-      );
+      throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISH);
     }
 
     await this.wishesRepository
@@ -127,17 +129,13 @@ export class WishesService {
     const wish = await this.getWishById(id);
 
     if (userId !== wish.owner.id) {
-      throw new ServerException(
-        403,
-        'Вы не являетесь владельцем этого подарка',
-      );
+      throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISH);
     }
 
     if (updateWishDto.price) {
       if (wish.raised > 0) {
-        throw new ServerException(
-          403,
-          'Нельзя изменить подарок, на который начали сбор',
+        throw new CustomException(
+          ERROR_MESSAGES.FORBID_TO_CHANGE_WISH_WITH_OFFER,
         );
       }
     }

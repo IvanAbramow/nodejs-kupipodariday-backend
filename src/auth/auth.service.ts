@@ -3,7 +3,8 @@ import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { HashService } from '../hash/hash.service';
 import { JwtService } from '@nestjs/jwt';
-import { ServerException } from '../exceptions/server.exception';
+import { CustomException } from '../exceptions/custom.exception';
+import { ERROR_MESSAGES } from '../config/errors';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +31,7 @@ export class AuthService {
     const user = await this.validateUser(username, password);
 
     if (!user) {
-      throw new ServerException(401, 'Некорректная пара логин и пароль');
+      throw new CustomException(ERROR_MESSAGES.INCORRECT_CREDENTIALS);
     }
 
     const payload = { username: user.username, sub: user.id };
