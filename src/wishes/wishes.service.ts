@@ -16,6 +16,21 @@ export class WishesService {
     private dataSource: DataSource,
   ) {}
 
+  private transformWish(wish: Wish): Wish {
+    return {
+      ...wish,
+      owner: plainToInstance(User, wish.owner),
+    };
+  }
+
+  private processWish(userId: number, wish: Wish): Wish {
+    if (userId !== wish.owner.id) {
+      wish.offers = wish.offers.filter((offer) => !offer.hidden);
+    }
+
+    return this.transformWish(wish);
+  }
+
   async createWish(user: User, wishDto: CreateWishDto) {
     const wish = this.wishesRepository.create({ ...wishDto, owner: user });
     await this.wishesRepository.save(wish);
@@ -29,7 +44,7 @@ export class WishesService {
     await queryRunner.startTransaction();
 
     try {
-      const wish = await this.getWishById(id);
+      const wish = await this.getWishById(user.id, id);
       const wishCopies = wish.copied;
 
       delete wish.id;
@@ -54,33 +69,27 @@ export class WishesService {
     }
   }
 
-  async getLastWish() {
+  async getLastWish(userId: number) {
     const wishes = await this.wishesRepository.find({
-      relations: ['owner'],
+      relations: ['owner', 'offers'],
       order: { copied: 'DESC' },
       take: 40,
     });
 
-    return wishes.map((wish) => ({
-      ...wish,
-      owner: plainToInstance(User, wish.owner),
-    }));
+    return wishes.map((wish) => this.processWish(userId, wish));
   }
 
-  async getTopWish() {
+  async getTopWish(userId: number) {
     const wishes = await this.wishesRepository.find({
-      relations: ['owner'],
+      relations: ['owner', 'offers'],
       order: { copied: 'DESC' },
       take: 20,
     });
 
-    return wishes.map((wish) => ({
-      ...wish,
-      owner: plainToInstance(User, wish.owner),
-    }));
+    return wishes.map((wish) => this.processWish(userId, wish));
   }
 
-  async getWishById(id: number): Promise<Wish> {
+  async getWishById(userId: number, id: number): Promise<Wish> {
     if (isNaN(id)) {
       throw new BadRequestException(ERROR_MESSAGES.WISH_ID_NOT_NUMBER);
     }
@@ -94,14 +103,11 @@ export class WishesService {
       throw new CustomException(ERROR_MESSAGES.WISH_NOT_FOUND);
     }
 
-    return {
-      ...wish,
-      owner: plainToInstance(User, wish.owner),
-    };
+    return this.processWish(userId, wish);
   }
 
   async deleteWishById(userId: number, id: number) {
-    const wish = await this.getWishById(id);
+    const wish = await this.getWishById(userId, id);
 
     if (userId !== wish.owner.id) {
       throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISH);
@@ -126,7 +132,7 @@ export class WishesService {
     id: number;
     updateWishDto: UpdateWishDto;
   }): Promise<Wish> {
-    const wish = await this.getWishById(id);
+    const wish = await this.getWishById(userId, id);
 
     if (userId !== wish.owner.id) {
       throw new CustomException(ERROR_MESSAGES.FORBID_TO_CHANGE_WISH);

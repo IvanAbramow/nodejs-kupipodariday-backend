@@ -118,7 +118,6 @@ export class UsersService {
       ? { where: { email: findUserByQueryDto.query } }
       : { where: { username: findUserByQueryDto.query } };
 
-
     const users = await this.userRepository.find(queryOptions);
 
     return users.map((user) => plainToClass(User, user));

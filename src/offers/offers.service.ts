@@ -55,7 +55,10 @@ export class OffersService {
     await queryRunner.startTransaction();
 
     try {
-      const wish = await this.wishesService.getWishById(createOfferDto.itemId);
+      const wish = await this.wishesService.getWishById(
+        user.id,
+        createOfferDto.itemId,
+      );
       this.validateOfferCreation({ user, wish, amount: createOfferDto.amount });
 
       const raisedSum = this.calculateRaisedSum(

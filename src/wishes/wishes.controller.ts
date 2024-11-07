@@ -23,19 +23,19 @@ export class WishesController {
   }
 
   @Get('/last')
-  getLastWish() {
-    return this.wishesService.getLastWish();
+  getLastWish(@AuthUser() user: User) {
+    return this.wishesService.getLastWish(user.id);
   }
 
   @Get('/top')
-  getTopWish() {
-    return this.wishesService.getTopWish();
+  getTopWish(@AuthUser() user: User) {
+    return this.wishesService.getTopWish(user.id);
   }
 
   @Get('/:id')
   @UseGuards(JwtGuard)
-  getWishById(@Param('id') id: number) {
-    return this.wishesService.getWishById(id);
+  getWishById(@AuthUser() user: User, @Param('id') id: number) {
+    return this.wishesService.getWishById(user.id, id);
   }
 
   @Patch('/:id')
