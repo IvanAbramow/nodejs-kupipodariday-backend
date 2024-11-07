@@ -69,24 +69,24 @@ export class WishesService {
     }
   }
 
-  async getLastWish(userId: number) {
+  async getLastWish() {
     const wishes = await this.wishesRepository.find({
       relations: ['owner', 'offers'],
       order: { copied: 'DESC' },
       take: 40,
     });
 
-    return wishes.map((wish) => this.processWish(userId, wish));
+    return wishes.map((wish) => this.transformWish(wish));
   }
 
-  async getTopWish(userId: number) {
+  async getTopWish() {
     const wishes = await this.wishesRepository.find({
       relations: ['owner', 'offers'],
       order: { copied: 'DESC' },
       take: 20,
     });
 
-    return wishes.map((wish) => this.processWish(userId, wish));
+    return wishes.map((wish) => this.transformWish(wish));
   }
 
   async getWishById(userId: number, id: number): Promise<Wish> {

@@ -23,13 +23,13 @@ export class WishesController {
   }
 
   @Get('/last')
-  getLastWish(@AuthUser() user: User) {
-    return this.wishesService.getLastWish(user.id);
+  getLastWish() {
+    return this.wishesService.getLastWish();
   }
 
   @Get('/top')
-  getTopWish(@AuthUser() user: User) {
-    return this.wishesService.getTopWish(user.id);
+  getTopWish() {
+    return this.wishesService.getTopWish();
   }
 
   @Get('/:id')
