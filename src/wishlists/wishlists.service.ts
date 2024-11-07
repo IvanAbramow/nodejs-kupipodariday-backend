@@ -94,10 +94,6 @@ export class WishlistsService {
     }
 
     if (updateWishlistDto.itemsId) {
-      for (const itemId of updateWishlistDto.itemsId) {
-        await this.wishesService.getWishById(userId, itemId);
-      }
-
       wishlist.items = await this.wishesService.getWishesByIds(
         updateWishlistDto.itemsId,
       );

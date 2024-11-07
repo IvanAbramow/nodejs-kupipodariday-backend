@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { EntityPropertyNotFoundError, FindManyOptions, QueryFailedError, Repository } from 'typeorm';
+import { EntityPropertyNotFoundError, FindManyOptions, Like, QueryFailedError, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { HashService } from '../hash/hash.service';
 import { Wish } from '../wishes/entities/wish.entity';
@@ -111,12 +111,21 @@ export class UsersService {
   }
 
   async findMany(findUserByQueryDto: FindUserByQueryDto): Promise<User[]> {
+    const query = findUserByQueryDto.query;
+
+    if (!query) {
+      return [];
+    }
+
     const emailRegexp = /^[\w\.-]+@[\w\.-]+\.\w{2,4}$/;
-    const queryOptions: FindManyOptions<User> = emailRegexp.test(
-      findUserByQueryDto.query,
-    )
-      ? { where: { email: findUserByQueryDto.query } }
-      : { where: { username: findUserByQueryDto.query } };
+    const queryOptions: FindManyOptions<User> = emailRegexp.test(query)
+      ? { where: [{ email: Like(`%${query}%`) }] }
+      : {
+          where: [
+            { username: Like(`%${query}%`) },
+            { email: Like(`%${query}%`) },
+          ],
+        };
 
     const users = await this.userRepository.find(queryOptions);
 
